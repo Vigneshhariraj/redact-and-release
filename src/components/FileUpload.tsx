@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, File, X } from 'lucide-react';
+import { Upload, File, X, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -17,6 +17,8 @@ interface FileUploadProps {
 
 export const FileUpload = ({ onFilesChange, files }: FileUploadProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadResults, setUploadResults] = useState<{ name: string; url: string }[]>([]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -58,6 +60,51 @@ export const FileUpload = ({ onFilesChange, files }: FileUploadProps) => {
 
   const removeFile = (id: string) => {
     onFilesChange(files.filter(f => f.id !== id));
+  };
+
+  const uploadFiles = async () => {
+    setIsProcessing(true);
+    const results: { name: string; url: string }[] = [];
+    
+    for (const fileData of files) {
+      const formData = new FormData();
+      formData.append("file", fileData.file);
+      
+      try {
+        const res = await fetch("http://localhost:5000/redact", {
+          method: "POST",
+          body: formData
+        });
+        
+        const data = await res.json();
+        if (data.status === "success") {
+          results.push({
+            name: data.filename,
+            url: `http://localhost:5000${data.url}`
+          });
+        } else {
+          alert(`Redaction failed for ${fileData.file.name}`);
+        }
+      } catch (err) {
+        alert(`Error uploading ${fileData.file.name}`);
+      }
+    }
+    
+    setUploadResults(results);
+    setIsProcessing(false);
+  };
+
+  const downloadFile = (url: string, filename: string) => {
+    fetch(url)
+      .then(res => res.blob())
+      .then(blob => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
   };
 
   return (
@@ -127,6 +174,38 @@ export const FileUpload = ({ onFilesChange, files }: FileUploadProps) => {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
+            ))}
+          </div>
+          <Button 
+            className="w-full mt-4" 
+            onClick={uploadFiles}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Start Redaction'
+            )}
+          </Button>
+        </div>
+      )}
+
+      {uploadResults.length > 0 && (
+        <div className="mt-4 space-y-3">
+          <h4 className="font-semibold text-foreground">Download Redacted Files:</h4>
+          <div className="space-y-2">
+            {uploadResults.map(({ name, url }) => (
+              <Button
+                key={name}
+                onClick={() => downloadFile(url, name)}
+                variant="success"
+                className="w-full justify-start"
+              >
+                Download {name}
+              </Button>
             ))}
           </div>
         </div>

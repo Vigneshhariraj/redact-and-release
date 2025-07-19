@@ -2,54 +2,12 @@ import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { FileUpload, type FileWithMetadata } from '@/components/FileUpload';
-import { RedactionProgress } from '@/components/RedactionProgress';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Index = () => {
   const [files, setFiles] = useState<FileWithMetadata[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleStartRedaction = async () => {
-    if (files.length === 0) return;
-    
-    setIsProcessing(true);
-    
-    // Simulate API call to backend
-    try {
-      const response = await fetch('http://localhost:5000/redact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          files: files.map(f => ({
-            name: f.file.name,
-            size: f.file.size,
-            id: f.id
-          }))
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Backend service unavailable');
-      }
-    } catch (error) {
-      console.log('Backend not available - using simulation mode');
-    }
-    
-    // The actual processing simulation is handled in RedactionProgress component
-  };
-
-  const handleReset = () => {
-    setFiles([]);
-    setIsProcessing(false);
-  };
-
-  const stopProcessing = () => {
-    setIsProcessing(false);
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -102,7 +60,7 @@ const Index = () => {
         </div>
 
         {/* Status Alert */}
-        {!isProcessing && files.length === 0 && (
+        {files.length === 0 && (
           <Alert className="border-primary/20 bg-primary/5">
             <Info className="h-4 w-4 text-primary" />
             <AlertDescription className="text-foreground">
@@ -112,29 +70,15 @@ const Index = () => {
           </Alert>
         )}
 
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* File Upload Section */}
+        {/* Main Content */}
+        <div className="max-w-3xl mx-auto">
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-foreground">
-              1. Upload PDF Files
+            <h3 className="text-xl font-semibold text-foreground text-center">
+              Upload & Redact PDF Files
             </h3>
             <FileUpload 
               files={files} 
               onFilesChange={setFiles}
-            />
-          </div>
-
-          {/* Redaction Progress Section */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-foreground">
-              2. Process & Download
-            </h3>
-            <RedactionProgress
-              files={files}
-              isProcessing={isProcessing}
-              onStartRedaction={handleStartRedaction}
-              onReset={handleReset}
             />
           </div>
         </div>
