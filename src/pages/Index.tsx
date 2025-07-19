@@ -1,12 +1,156 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { FileUpload, type FileWithMetadata } from '@/components/FileUpload';
+import { RedactionProgress } from '@/components/RedactionProgress';
+import { Card } from '@/components/ui/card';
+import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Index = () => {
+  const [files, setFiles] = useState<FileWithMetadata[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleStartRedaction = async () => {
+    if (files.length === 0) return;
+    
+    setIsProcessing(true);
+    
+    // Simulate API call to backend
+    try {
+      const response = await fetch('http://localhost:5000/redact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          files: files.map(f => ({
+            name: f.file.name,
+            size: f.file.size,
+            id: f.id
+          }))
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Backend service unavailable');
+      }
+    } catch (error) {
+      console.log('Backend not available - using simulation mode');
+    }
+    
+    // The actual processing simulation is handled in RedactionProgress component
+  };
+
+  const handleReset = () => {
+    setFiles([]);
+    setIsProcessing(false);
+  };
+
+  const stopProcessing = () => {
+    setIsProcessing(false);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      
+      <main className="flex-1 container mx-auto px-4 py-8 space-y-8">
+        {/* Hero Section */}
+        <div className="text-center space-y-4 mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+            Professional PDF Redaction
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Securely redact sensitive information from your PDF documents with our 
+            enterprise-grade redaction tool. Upload, process, and download your 
+            protected documents in minutes.
+          </p>
+        </div>
+
+        {/* Info Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <Card className="p-4 text-center space-y-2">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="font-semibold">Secure Processing</h3>
+            <p className="text-sm text-muted-foreground">
+              All files processed locally for maximum security
+            </p>
+          </Card>
+          
+          <Card className="p-4 text-center space-y-2">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="font-semibold">Batch Processing</h3>
+            <p className="text-sm text-muted-foreground">
+              Process multiple PDF files simultaneously
+            </p>
+          </Card>
+          
+          <Card className="p-4 text-center space-y-2">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <Info className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="font-semibold">Enterprise Ready</h3>
+            <p className="text-sm text-muted-foreground">
+              Professional-grade redaction for business use
+            </p>
+          </Card>
+        </div>
+
+        {/* Status Alert */}
+        {!isProcessing && files.length === 0 && (
+          <Alert className="border-primary/20 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-foreground">
+              <strong>Getting Started:</strong> Upload your PDF files using the area below. 
+              The system supports multiple file selection and drag-and-drop functionality.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* File Upload Section */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-foreground">
+              1. Upload PDF Files
+            </h3>
+            <FileUpload 
+              files={files} 
+              onFilesChange={setFiles}
+            />
+          </div>
+
+          {/* Redaction Progress Section */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-foreground">
+              2. Process & Download
+            </h3>
+            <RedactionProgress
+              files={files}
+              isProcessing={isProcessing}
+              onStartRedaction={handleStartRedaction}
+              onReset={handleReset}
+            />
+          </div>
+        </div>
+
+        {/* Backend Status */}
+        <Card className="p-4 bg-muted/30">
+          <div className="flex items-center space-x-2 text-sm">
+            <div className="w-2 h-2 bg-warning rounded-full animate-pulse" />
+            <span className="text-muted-foreground">
+              Backend Status: Simulation Mode (Connect to localhost:5000 for live processing)
+            </span>
+          </div>
+        </Card>
+      </main>
+
+      <Footer />
     </div>
   );
 };
