@@ -13,9 +13,10 @@ export interface FileWithMetadata {
 interface FileUploadProps {
   onFilesChange: (files: FileWithMetadata[]) => void;
   files: FileWithMetadata[];
+  onProcessingChange?: (processing: boolean) => void;
 }
 
-export const FileUpload = ({ onFilesChange, files }: FileUploadProps) => {
+export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUploadProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadResults, setUploadResults] = useState<{ name: string; url: string }[]>([]);
@@ -91,6 +92,7 @@ export const FileUpload = ({ onFilesChange, files }: FileUploadProps) => {
     if (!folderSelected) return;
 
     setIsProcessing(true);
+    onProcessingChange?.(true);
     const results: { name: string; url: string }[] = [];
     
     for (const fileData of files) {
@@ -119,6 +121,7 @@ export const FileUpload = ({ onFilesChange, files }: FileUploadProps) => {
     
     setUploadResults(results);
     setIsProcessing(false);
+    onProcessingChange?.(false);
   };
 
   const downloadFile = async (url: string, filename: string) => {

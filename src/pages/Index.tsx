@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { FileUpload, type FileWithMetadata } from '@/components/FileUpload';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
+import { BackendStatus } from '@/components/BackendStatus';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Index = () => {
   const [files, setFiles] = useState<FileWithMetadata[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -79,22 +83,18 @@ const Index = () => {
             <FileUpload 
               files={files} 
               onFilesChange={setFiles}
+              onProcessingChange={setIsProcessing}
             />
           </div>
         </div>
 
         {/* Backend Status */}
-        <Card className="p-4 bg-muted/30">
-          <div className="flex items-center space-x-2 text-sm">
-            <div className="w-2 h-2 bg-warning rounded-full animate-pulse" />
-            <span className="text-muted-foreground">
-              Backend Status: Simulation Mode (Connect to localhost:5000 for live processing)
-            </span>
-          </div>
-        </Card>
+        <BackendStatus onStatusChange={setIsBackendConnected} />
       </main>
 
       <Footer />
+      
+      <LoadingOverlay isVisible={isProcessing} />
     </div>
   );
 };
