@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { Upload, File, X, Loader2, Folder } from 'lucide-react';
+import { Upload, File, X, Loader2, Folder, CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export interface FileWithMetadata {
   file: File;
@@ -20,7 +21,9 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadResults, setUploadResults] = useState<{ name: string; url: string }[]>([]);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [outputDirectoryHandle, setOutputDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const { toast } = useToast();
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -77,7 +80,11 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
         setOutputDirectoryHandle(directoryHandle);
         return true;
       } else {
-        alert('Your browser does not support folder selection. Files will be downloaded to your default Downloads folder.');
+        toast({
+          title: "Browser Limitation",
+          description: "Your browser does not support folder selection. Files will be downloaded to your default Downloads folder.",
+          variant: "default",
+        });
         return true;
       }
     } catch (err) {
@@ -87,41 +94,91 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
   };
 
   const uploadFiles = async () => {
-    // First ask user to select output folder
     const folderSelected = await selectOutputFolder();
     if (!folderSelected) return;
 
     setIsProcessing(true);
     onProcessingChange?.(true);
-    const results: { name: string; url: string }[] = [];
-    
+    setSaveMessage(null); // Clear any previous message
+
+    const formData = new FormData();
     for (const fileData of files) {
-      const formData = new FormData();
-      formData.append("file", fileData.file);
-      
-      try {
-        const res = await fetch("http://localhost:5000/redact", {
-          method: "POST",
-          body: formData
-        });
-        
-        const data = await res.json();
-        if (data.status === "success") {
-          results.push({
-            name: data.filename,
-            url: `http://localhost:5000${data.url}`
-          });
-        } else {
-          alert(`Redaction failed for ${fileData.file.name}`);
-        }
-      } catch (err) {
-        alert(`Error uploading ${fileData.file.name}`);
-      }
+      formData.append("files", fileData.file); // Note: 'files' must match backend
     }
-    
-    setUploadResults(results);
+
+    try {
+      const res = await fetch("http://localhost:5000/redact-multi", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      let results: { name: string; url: string }[] = [];
+
+      if (data.status === "success" && Array.isArray(data.results)) {
+        results = data.results.map((item: { filename: string; url: string }) => ({
+          name: item.filename,
+          url: `http://localhost:5000${item.url}`
+        }));
+
+        setUploadResults(results);
+
+        // ✅ Auto-save files to selected folder
+        if (outputDirectoryHandle) {
+          for (const { name, url } of results) {
+            await downloadFile(url, name);
+          }
+
+          // ✅ Show message near the button
+          setSaveMessage(`Saved ${results.length} files to: ${outputDirectoryHandle.name}`);
+          toast({
+            title: "Files Saved Successfully",
+            description: `${results.length} files saved to: ${outputDirectoryHandle.name}`,
+            variant: "default",
+          });
+        }
+      } else {
+        toast({
+          title: "Redaction Failed",
+          description: "Batch redaction failed. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Upload Error",
+        description: "Error uploading files. Please check your connection and try again.",
+        variant: "destructive",
+      });
+    }
+
     setIsProcessing(false);
     onProcessingChange?.(false);
+  };
+
+  const clearAll = async () => {
+    // Clear frontend state
+    onFilesChange([]);
+    setUploadResults([]);
+    setSaveMessage(null);
+    setOutputDirectoryHandle(null);
+
+    // 🔁 Call backend to delete files
+    try {
+      await fetch("http://localhost:5000/clear-all", { method: "POST" });
+      toast({
+        title: "Cleared Successfully",
+        description: "All files have been cleared and reset.",
+        variant: "default",
+      });
+    } catch (err) {
+      console.error("Failed to clear backend files:", err);
+      toast({
+        title: "Clear Warning",
+        description: "Frontend cleared but backend cleanup may have failed.",
+        variant: "default",
+      });
+    }
   };
 
   const downloadFile = async (url: string, filename: string) => {
@@ -146,7 +203,11 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
       }
     } catch (err) {
       console.error('Download failed:', err);
-      alert('Download failed. Please try again.');
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the file. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -235,23 +296,33 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
               </div>
             ))}
           </div>
-          <Button 
-            className="w-full mt-4" 
-            onClick={uploadFiles}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              'Start Redaction'
+          
+          <div className="space-y-3">
+            <Button 
+              className="w-full" 
+              onClick={uploadFiles}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Start Redaction'
+              )}
+            </Button>
+            
+            {saveMessage && (
+              <div className="flex items-center justify-center space-x-2 p-3 bg-success/10 text-success border border-success/20 rounded-lg">
+                <CheckCircle className="h-4 w-4" />
+                <p className="text-sm font-medium">{saveMessage}</p>
+              </div>
             )}
-          </Button>
+          </div>
         </div>
       )}
-
+      
       {uploadResults.length > 0 && (
         <div className="mt-4 space-y-3">
           <h4 className="font-semibold text-foreground">Redacted Files Ready:</h4>
@@ -282,6 +353,15 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
                 </Button>
               ))}
             </div>
+
+            {/* ✅ Clear Button Goes Here */}
+            <Button
+              variant="destructive"
+              className="w-full mt-2"
+              onClick={clearAll}
+            >
+              Clear All and Start Over
+            </Button>
           </div>
         </div>
       )}
