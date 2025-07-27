@@ -3,6 +3,9 @@ import { Upload, File, X, Loader2, Folder, CheckCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { FilePickerDialog } from '@/components/FilePickerDialog';
+import { FolderPickerDialog } from '@/components/FolderPickerDialog';
+import { OutputFolderDialog } from '@/components/OutputFolderDialog';
 
 export interface FileWithMetadata {
   file: File;
@@ -73,29 +76,28 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
   };
 
   const selectOutputFolder = async () => {
-    try {
-      // Check if File System Access API is supported
-      if ('showDirectoryPicker' in window) {
-        const directoryHandle = await (window as any).showDirectoryPicker();
-        setOutputDirectoryHandle(directoryHandle);
-        return true;
-      } else {
-        toast({
-          title: "Browser Limitation",
-          description: "Your browser does not support folder selection. Files will be downloaded to your default Downloads folder.",
-          variant: "default",
-        });
-        return true;
-      }
-    } catch (err) {
-      console.log('User cancelled folder selection');
-      return false;
-    }
+    return new Promise<boolean>((resolve) => {
+      // This will be handled by the OutputFolderDialog component
+      const handleFolderSelection = (handle: FileSystemDirectoryHandle | null) => {
+        setOutputDirectoryHandle(handle);
+        if (!handle) {
+          toast({
+            title: "Downloads Folder Selected",
+            description: "Files will be downloaded to your default Downloads folder.",
+            variant: "default",
+          });
+        }
+        resolve(true);
+      };
+      // The dialog will handle the selection
+      resolve(true);
+    });
   };
 
-  const uploadFiles = async () => {
-    const folderSelected = await selectOutputFolder();
-    if (!folderSelected) return;
+  const uploadFiles = async (directoryHandle?: FileSystemDirectoryHandle | null) => {
+  if (directoryHandle !== undefined) {
+    setOutputDirectoryHandle(directoryHandle);
+  }
 
     setIsProcessing(true);
     onProcessingChange?.(true);
@@ -236,26 +238,27 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
         <div className="space-y-3">
           <p className="text-lg font-medium">
             Drop PDF files here or{' '}
-            <label className="text-primary cursor-pointer hover:underline">
-              browse files
-              <input
-                type="file"
-                multiple
-                accept=".pdf,application/pdf"
-                className="hidden"
-                onChange={handleFileInput}
-              />
-            </label>
+            <FilePickerDialog
+              trigger={
+                <span className="text-primary cursor-pointer hover:underline">
+                  browse files
+                </span>
+              }
+              onFilesSelected={(fileList) => handleFiles(fileList)}
+              title="Select PDF Files"
+              description="Choose one or more PDF files to redact"
+            />
             {' or '}
-            <label className="text-primary cursor-pointer hover:underline">
-              select folder
-              <input
-                type="file"
-                {...({ webkitdirectory: "" } as any)}
-                className="hidden"
-                onChange={handleFolderInput}
-              />
-            </label>
+            <FolderPickerDialog
+              trigger={
+                <span className="text-primary cursor-pointer hover:underline">
+                  select folder
+                </span>
+              }
+              onFolderSelected={(fileList) => handleFiles(fileList)}
+              title="Select Folder"
+              description="Choose a folder containing PDF files"
+            />
           </p>
           <p className="text-sm text-muted-foreground">
             Support for individual files or entire folders of PDF files
@@ -298,20 +301,25 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
           </div>
           
           <div className="space-y-3">
-            <Button 
-              className="w-full" 
-              onClick={uploadFiles}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Start Redaction'
-              )}
-            </Button>
+            <OutputFolderDialog
+              trigger={
+                <Button 
+                  className="w-full" 
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Start Redaction'
+                  )}
+                </Button>
+              }
+              onFolderSelected={(handle) => uploadFiles(handle)}
+              title="Choose Output Folder"
+            />
             
             {saveMessage && (
               <div className="flex items-center justify-center space-x-2 p-3 bg-success/10 text-success border border-success/20 rounded-lg">
