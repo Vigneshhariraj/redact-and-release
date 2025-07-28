@@ -1,64 +1,50 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-interface TutorialStep {
+interface TutorialSlide {
   id: string;
   title: string;
   description: string;
-  target: string; // CSS selector or element ID
-  position: 'top' | 'bottom' | 'left' | 'right';
-  action?: 'click' | 'hover' | 'none';
+  image: string;
 }
 
 interface TutorialContextType {
   isActive: boolean;
-  currentStep: number;
-  steps: TutorialStep[];
+  currentSlide: number;
+  slides: TutorialSlide[];
   startTutorial: () => void;
-  nextStep: () => void;
-  prevStep: () => void;
-  skipTutorial: () => void;
+  nextSlide: () => void;
+  prevSlide: () => void;
   closeTutorial: () => void;
   dontShowAgain: () => void;
-  showFloatingButton: boolean;
+  showButton: boolean;
 }
 
 const TutorialContext = createContext<TutorialContextType | undefined>(undefined);
 
-const TUTORIAL_STEPS: TutorialStep[] = [
+const TUTORIAL_SLIDES: TutorialSlide[] = [
   {
     id: 'welcome',
     title: 'Welcome to PDF Redactor!',
-    description: 'Let me show you how to securely redact your PDF documents in just a few simple steps.',
-    target: '.tutorial-welcome',
-    position: 'bottom'
+    description: 'Securely redact sensitive information from your PDF documents with our enterprise-grade redaction tool.',
+    image: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&h=600&fit=crop'
   },
   {
-    id: 'upload-area',
+    id: 'upload',
     title: 'Upload Your Files',
-    description: 'Drag and drop PDF files here, or click to browse files and folders. Multiple files are supported!',
-    target: '.tutorial-upload-area',
-    position: 'bottom'
+    description: 'Drag and drop PDF files or browse files and folders. Multiple files are supported for batch processing.',
+    image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop'
   },
   {
-    id: 'backend-status',
-    title: 'Backend Connection',
-    description: 'This indicator shows your connection status. Green means ready to process, yellow means connecting.',
-    target: '.tutorial-backend-status',
-    position: 'top'
-  },
-  {
-    id: 'file-list',
-    title: 'Manage Your Files',
-    description: 'Here you can see all selected files, remove unwanted ones, and start the redaction process.',
-    target: '.tutorial-file-list',
-    position: 'top'
-  },
-  {
-    id: 'process-button',
+    id: 'process',
     title: 'Start Redaction',
-    description: 'Click this button to begin the secure redaction process. You can select an output folder first.',
-    target: '.tutorial-process-button',
-    position: 'top'
+    description: 'Select your output folder and click Start Redaction. Our system will securely process your documents.',
+    image: 'https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=800&h=600&fit=crop'
+  },
+  {
+    id: 'download',
+    title: 'Download Results',
+    description: 'Once processing is complete, download your redacted PDF files to your selected folder.',
+    image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&h=600&fit=crop'
   }
 ];
 
@@ -66,39 +52,33 @@ const STORAGE_KEY = 'pdf-redactor-tutorial-dismissed';
 
 export const TutorialProvider = ({ children }: { children: ReactNode }) => {
   const [isActive, setIsActive] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [showFloatingButton, setShowFloatingButton] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [showButton, setShowButton] = useState(true);
 
   useEffect(() => {
-    // Check if user has dismissed tutorial
     const dismissed = localStorage.getItem(STORAGE_KEY);
     if (!dismissed) {
-      // Start tutorial on first visit
-      setTimeout(() => setIsActive(true), 1000);
+      setTimeout(() => setIsActive(true), 1500);
     }
   }, []);
 
   const startTutorial = () => {
-    setCurrentStep(0);
+    setCurrentSlide(0);
     setIsActive(true);
   };
 
-  const nextStep = () => {
-    if (currentStep < TUTORIAL_STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
+  const nextSlide = () => {
+    if (currentSlide < TUTORIAL_SLIDES.length - 1) {
+      setCurrentSlide(currentSlide + 1);
     } else {
       closeTutorial();
     }
   };
 
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+  const prevSlide = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(currentSlide - 1);
     }
-  };
-
-  const skipTutorial = () => {
-    setIsActive(false);
   };
 
   const closeTutorial = () => {
@@ -108,22 +88,21 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
   const dontShowAgain = () => {
     localStorage.setItem(STORAGE_KEY, 'true');
     setIsActive(false);
-    setShowFloatingButton(false);
+    setShowButton(false);
   };
 
   return (
     <TutorialContext.Provider
       value={{
         isActive,
-        currentStep,
-        steps: TUTORIAL_STEPS,
+        currentSlide,
+        slides: TUTORIAL_SLIDES,
         startTutorial,
-        nextStep,
-        prevStep,
-        skipTutorial,
+        nextSlide,
+        prevSlide,
         closeTutorial,
         dontShowAgain,
-        showFloatingButton
+        showButton
       }}
     >
       {children}

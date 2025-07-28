@@ -5,8 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TutorialProvider } from "@/contexts/TutorialContext";
-import { TutorialOverlay } from "@/components/TutorialOverlay";
-import { FloatingTutorialButton } from "@/components/FloatingTutorialButton";
+import { ImageSlideTutorial } from "@/components/ImageSlideTutorial";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -26,8 +25,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-          <TutorialOverlay />
-          <FloatingTutorialButton />
+          <ImageSlideTutorial />
         </TooltipProvider>
       </TutorialProvider>
     </ThemeProvider>

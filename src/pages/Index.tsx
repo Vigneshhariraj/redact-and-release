@@ -19,7 +19,7 @@ const Index = () => {
       
       <main className="flex-1 container mx-auto px-4 py-8 space-y-8">
         {/* Hero Section */}
-        <div className="text-center space-y-4 mb-8 tutorial-welcome">
+        <div className="text-center space-y-4 mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             Professional PDF Redaction
           </h2>
@@ -80,7 +80,7 @@ const Index = () => {
             <h3 className="text-xl font-semibold text-foreground text-center">
               Upload & Redact PDF Files
             </h3>
-            <div className="tutorial-upload-area">
+            <div>
               <FileUpload 
                 files={files} 
                 onFilesChange={setFiles}
@@ -91,7 +91,7 @@ const Index = () => {
         </div>
 
         {/* Backend Status */}
-        <div className="tutorial-backend-status">
+        <div>
           <BackendStatus onStatusChange={setIsBackendConnected} />
         </div>
       </main>
