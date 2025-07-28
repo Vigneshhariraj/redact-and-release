@@ -267,7 +267,7 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
       </div>
 
       {files.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3 tutorial-file-list">
           <h3 className="font-medium text-sm text-foreground">
             Selected Files ({files.length})
           </h3>
@@ -304,7 +304,7 @@ export const FileUpload = ({ onFilesChange, files, onProcessingChange }: FileUpl
             <OutputFolderDialog
               trigger={
                 <Button 
-                  className="w-full" 
+                  className="w-full tutorial-process-button" 
                   disabled={isProcessing}
                 >
                   {isProcessing ? (
